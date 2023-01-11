@@ -273,7 +273,7 @@ public:
     // didn't want to have low level changes with this particular refactor
     // TO DO: Add more Tuple constructors and then redo this code to be
     //  Teuchos::tuple<std::string> algorithm_names( "rcb", "multijagged" ... );
-    Array<std::string> algorithm_names(19);
+    Array<std::string> algorithm_names(20);
     algorithm_names[0] = "rcb";
     algorithm_names[1] = "multijagged";
     algorithm_names[2] = "rib";
@@ -293,6 +293,7 @@ public:
     algorithm_names[16] = "random";
     algorithm_names[17] = "zoltan";
     algorithm_names[18] = "forTestingOnly";
+    algorithm_names[19] = "jet";
     RCP<Teuchos::StringValidator> algorithm_Validator = Teuchos::rcp(
       new Teuchos::StringValidator( algorithm_names ));
     pl.set("algorithm", "random", "partitioning algorithm",
@@ -569,6 +570,11 @@ template <typename Adapter>
                                                 this->comm_,
                                                 this->baseInputAdapter_));
         }
+        else if (algName_ == std::string("jet")) {
+          this->algorithm_ = rcp(new AlgJet<Adapter>(this->envConst_,
+                                                this->comm_,
+                                                this->baseInputAdapter_));
+        }
         else if (algName_ == std::string("block")) {
           this->algorithm_ = rcp(new AlgBlock<Adapter>(this->envConst_,
                                              this->comm_, this->baseInputAdapter_));
@@ -729,6 +735,7 @@ void PartitioningProblem<Adapter>::processAlgorithmName(
         algorithm == std::string("scotch") ||
         algorithm == std::string("ptscotch") ||
         algorithm == std::string("pulp") || algorithm == std::string("sarma") ||
+        algorithm == std::string("jet") || 
         algorithm == std::string("patoh") || algorithm == std::string("phg") ||
         algorithm == std::string("multijagged")) {
       algName_ = algorithm;

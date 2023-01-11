@@ -93,6 +93,7 @@ TRIBITS_REPOSITORY_DEFINE_PACKAGES(
   Galeri                packages/galeri                   PT
   Amesos                packages/amesos                   PT
   Pamgen                packages/pamgen                   PT
+  Zoltan2Jet            packages/zoltan2/jet              PT
   Zoltan2Core           packages/zoltan2/core             PT
   Ifpack                packages/ifpack                   PT
   ML                    packages/ml                       PT

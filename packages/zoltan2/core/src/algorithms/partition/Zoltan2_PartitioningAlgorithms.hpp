@@ -50,6 +50,7 @@
 #include <Zoltan2_AlgParMETIS.hpp>
 #include <Zoltan2_AlgQuotient.hpp>
 #include <Zoltan2_AlgPuLP.hpp>
+#include <Zoltan2_AlgJet.hpp>
 #include <Zoltan2_AlgParMA.hpp>
 #include <Zoltan2_AlgBlock.hpp>
 #include <Zoltan2_AlgMultiJagged.hpp>
