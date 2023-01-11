@@ -32,20 +32,47 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // 
 
-#ifndef stk_mesh_Stencils_hpp
-#define stk_mesh_Stencils_hpp
+#include <gtest/gtest.h>
+#include <stk_util/diag/Resource2.h>
+#include <stk_unit_test_utils/timer.hpp>
 
-#include <stddef.h>                     // for size_t
-#include <stk_mesh/base/Types.hpp>      // for EntityRank, etc
-#include "stk_topology/topology.hpp"    // for topology, etc
+namespace {
 
+TEST(Resource2, MatchTiming)
+{
+  if (stk::parallel_machine_size(MPI_COMM_WORLD) != 1) { GTEST_SKIP(); }
 
+  sierra::String parentName("parentResource");
+  sierra::Rsrc2::ResourceRoot resourceRoot(parentName);
+  sierra::Rsrc2::ResourceList resourceList;
 
-namespace stk {
-namespace mesh {
+  stk::unit_test_util::BatchTimer batchTimer(MPI_COMM_WORLD);
+  batchTimer.initialize_batch_timer();
 
+  constexpr int N = 25000;
 
-} // namespace mesh
-} // namespace stk
+  for(int i=0; i<N; ++i) {
+    sierra::String name("ABC_"+std::to_string(i));
+    resourceList.insert(resourceRoot.create_value<int>(name, i));
+  }
 
-#endif //  stk_mesh_Stencils_hpp
+  EXPECT_EQ(static_cast<size_t>(N), resourceList.size());
+
+  constexpr int NumRuns = 25000;
+  constexpr int NumOuterRuns = 5;
+
+  for(int i=0; i<NumOuterRuns; ++i) {
+    batchTimer.start_batch_timer();
+    for(int r=0; r<NumRuns; ++r) {
+      sierra::String name("ABC_"+std::to_string(r));
+      sierra::Rsrc2::ResourceList matchList;
+      resourceList.match(name, matchList);
+    }
+    batchTimer.stop_batch_timer();
+  }
+
+  batchTimer.print_batch_timing(NumRuns);
+}
+
+}
+

@@ -32,59 +32,51 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // 
 
+#include <gtest/gtest.h>
+#include <stk_util/parallel/Parallel.hpp>
+#include <stk_util/parallel/ParallelVectorConcat.hpp>
+#include <stk_unit_test_utils/timer.hpp>
 
-#include <stk_mesh/base/Stencils.hpp>
-#include <stk_util/util/ReportHandler.hpp>  // for ThrowRequire
-#include "stk_mesh/base/Types.hpp"      // for EntityRank, etc
+namespace {
 
-namespace stk {
-namespace mesh {
-
-int
-element_node_stencil_2d(
-  EntityRank            from_type ,
-  EntityRank            to_type ,
-  unsigned              identifier )
+TEST(ParallelVectorConcat, Timing)
 {
-  static const size_t spatial_dimension = 2;
+  if (stk::parallel_machine_size(MPI_COMM_WORLD) != 2) { GTEST_SKIP(); }
 
-  int ordinal = -1 ;
+  constexpr unsigned numIters = 3;
+  constexpr unsigned numRuns = 5;
 
-  if ( spatial_dimension == from_type && stk::topology::NODE_RANK == to_type ) {
-    ordinal = static_cast<int>(identifier);
+  stk::unit_test_util::BatchTimer batchTimer(MPI_COMM_WORLD);
+  batchTimer.initialize_batch_timer();
+
+  for(unsigned run=0; run<numRuns; ++run) {
+    batchTimer.start_batch_timer();
+
+    using Item = std::pair<double,double>;
+    const size_t bufSize = size_t(std::numeric_limits<int>::max())/sizeof(Item) + 1000;
+    std::vector<Item> localBuf(bufSize);
+    std::vector<Item>globalBuf;
+
+    const int myrank = stk::parallel_machine_rank(MPI_COMM_WORLD);
+    for (size_t i=0; i < bufSize; ++i) {
+      localBuf[i] = std::make_pair(static_cast<double>(i + myrank),static_cast<double>(i + myrank));
+    }
+
+    for(unsigned iter=0; iter<numIters; ++iter) {
+      stk::parallel_vector_concat(MPI_COMM_WORLD, localBuf, globalBuf);
+      EXPECT_EQ(globalBuf.size(), 2*bufSize);
+
+      for (size_t j=0; j < bufSize; ++j) {
+        EXPECT_EQ(globalBuf[j], Item(double(j), double(j)));
+        EXPECT_EQ(globalBuf[bufSize + j], Item(double(1 + j), double(1 + j)));
+      }
+    }
+
+    batchTimer.stop_batch_timer();
   }
 
-  return ordinal ;
+  batchTimer.print_batch_timing(numIters);
 }
 
-int
-element_node_stencil_3d(
-  EntityRank            from_type ,
-  EntityRank            to_type ,
-  unsigned              identifier )
-{
-  static const size_t spatial_dimension = 3;
-
-  int ordinal = -1 ;
-
-  if ( spatial_dimension == from_type && stk::topology::NODE_RANK == to_type ) {
-    ordinal = static_cast<int>(identifier);
-  }
-
-  return ordinal ;
 }
 
-relation_stencil_ptr
-get_element_node_stencil(
-  size_t                spatial_dimension)
-{
-  ThrowRequire(spatial_dimension == 2 || spatial_dimension == 3);
-
-  if (spatial_dimension == 3)
-    return & element_node_stencil_3d;
-  else // if (spatial_dimension == 2)
-    return & element_node_stencil_2d;
-}
-
-} // namespace mesh
-} // namespace stk
